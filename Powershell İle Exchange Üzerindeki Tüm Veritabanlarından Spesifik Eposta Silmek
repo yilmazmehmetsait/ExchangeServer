@@ -1,9 +1,0 @@
-$databases = Get-MailboxDatabase
-
-ForEach ($database in $databases) 
-
-{
-	$mailboxes = Get-Mailbox -Database $database
-	ForEach ($mailbox in $mailboxes)
-	{ Search-Mailbox $mailbox.identity -SearchQuery From:'EPOSTA ADRESİ' -DeleteContent -Force}
-}
