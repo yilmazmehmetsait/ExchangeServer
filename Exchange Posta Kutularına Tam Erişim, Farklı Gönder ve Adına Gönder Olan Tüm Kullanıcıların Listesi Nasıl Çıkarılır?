@@ -1,0 +1,17 @@
+Full Access
+
+$mailboxes = Get-Mailbox -ResultSize Unlimited -Filter ('RecipientTypeDetails -eq "UserMailbox"')  
+  
+foreach ($mailbox in $mailboxes)   
+{ Get-MailboxPermission -Identity $mailbox.alias -ResultSize Unlimited | ?{($_.IsInherited -eq $false) -and ($_.User -ne "NT AUTHORITY\SELF") -and ($_.AccessRights -like "FullAccess")} | select Identity, User, AccessRights }
+
+Send As
+
+$mailboxes = Get-Mailbox -ResultSize Unlimited -Filter ('RecipientTypeDetails -eq "UserMailbox"')  
+  
+foreach ($mailbox in $mailboxes)   
+{ Get-ADPermission -Identity $mailbox.alias | ? { $_.ExtendedRights -like "*send*" -and -not ($_.User -match "NT AUTHORITY") -and ($_.IsInherited -eq $false)} | select Identity,User,ExtendedRights }
+
+Send On Behalf
+
+Get-Mailbox -ResultSize Unlimited -Filter ('RecipientTypeDetails -eq "UserMailbox"') | select Alias, GrantSendOnBehalfTo
