@@ -1,0 +1,79 @@
+$MessageTrackingLogMaxAge = 180
+$MessageTrackingLogMaxDirectorySize = "50GB"
+$path=""
+$exchangeservername = $env:computername 
+
+#Set-TransportService için log yollarını ayarlama
+Set-TransportService -Identity $exchangeservername `
+    -ConnectivityLogPath "$path\TransportRoles\Logs\Hub\Connectivity" `
+    -MessageTrackingLogPath "$path\TransportRoles\Logs\MessageTracking" `
+    -IrmLogPath "$path\Logging\IRMLogs" `
+    -ActiveUserStatisticsLogPath "$path\TransportRoles\Logs\Hub\ActiveUsersStats" `
+    -ServerStatisticsLogPath "$path\TransportRoles\Logs\Hub\ServerStats" `
+    -ReceiveProtocolLogPath "$path\TransportRoles\Logs\Hub\ProtocolLog\SmtpReceive" `
+    -RoutingTableLogPath "$path\TransportRoles\Logs\Hub\Routing" `
+    -SendProtocolLogPath "$path\TransportRoles\Logs\Hub\ProtocolLog\SmtpSend" `
+    -QueueLogPath "$path\TransportRoles\Logs\Hub\QueueViewer" `
+    -WlmLogPath "$path\TransportRoles\Logs\Hub\WLM" `
+    -PipelineTracingPath "$path\TransportRoles\Logs\Hub\PipelineTracing" `
+    -AgentLogPath "$path\TransportRoles\Logs\Hub\AgentLog" `
+    -GeneralLogPath  "$path\TransportRoles\Logs\Hub\GeneralLog" `
+    -PickupDirectoryPath "$path\TransportRoles\Pickup" `
+    -ReplayDirectoryPath "$path\TransportRoles\Replay" `
+    -TransportHttpLogPath "$path\TransportRoles\Logs\Hub\TransportHttp" `
+    -JournalLogPath "$path\TransportRoles\Logs\JournalLog" `
+    -LatencyLogPath "$path\TransportRoles\Logs\Hub\LatencyLog" `
+    -MessageTrackingLogMaxDirectorySize $MessageTrackingLogMaxDirectorySize `
+    -MessageTrackingLogMaxAge $MessageTrackingLogMaxAge
+
+#Set-FrontendTransportService için log yollarını ayarlama
+Set-FrontendTransportService -Identity $exchangeservername `
+    -AgentLogPath "$path\TransportRoles\Logs\FrontEnd\AgentLog" `
+    -ConnectivityLogPath "$path\TransportRoles\Logs\FrontEnd\Connectivity" `
+    -ReceiveProtocolLogPath "$path\TransportRoles\Logs\FrontEnd\ProtocolLog\SmtpReceive" `
+    -SendProtocolLogPath "$path\TransportRoles\Logs\FrontEnd\ProtocolLog\SmtpSend" `
+    -RoutingTableLogPath "$path\TransportRoles\Logs\FrontEnd\Routing"
+
+# MailBoxServer için log yolu taşıma
+Set-MailboxServer -Identity $exchangeservername `
+    -CalendarRepairLogPath "$path\Logging\Calendar Repair Assistant" `
+    -LogPathForManagedFolders "$path\Logging\Managed Folder Assistant" `
+    -MigrationLogFilePath "$path\Logging\Managed Folder Assistant"
+
+#Set-MailboxTransportService için log yollarını ayarlama
+Set-MailboxTransportService -Identity $exchangeservername `
+   -ConnectivityLogPath "$path\TransportRoles\Logs\Mailbox\Connectivity" `
+   -MailboxDeliveryAgentLogPath "$path\TransportRoles\Logs\Mailbox\AgentLog\Delivery" `
+   -MailboxSubmissionAgentLogPath "$path\TransportRoles\Logs\Mailbox\AgentLog\Submission" `
+   -ReceiveProtocolLogPath "$path\TransportRoles\Logs\Mailbox\ProtocolLog\SmtpReceive" `
+   -SendProtocolLogPath "$path\TransportRoles\Logs\Mailbox\ProtocolLog\SmtpSend" `
+   -PipelineTracingPath "$path\TransportRoles\Logs\Mailbox\PipelineTracing" `
+   -RoutingTableLogPath "$path\TransportRoles\Logs\Mailbox\Routing" `
+   -MailboxDeliveryThrottlingLogPath "$path\TransportRoles\Logs\Throttling\Delivery"
+
+#IIS log yolu taşıma
+Import-Module WebAdministration
+Set-ItemProperty 'IIS:\Sites\Default Web Site' -name logfile.directory "D:\LOG\IISLogs"
+Set-ItemProperty 'IIS:\Sites\Exchange Back End' -name logfile.directory "D:\LOG\IISLogs"
+
+# Move the log path for the POP3 server 
+#POP3 log yolu taşıma
+Set-PopSettings -LogFileLocation "$path\Logging\Pop3"
+
+# Move the log path for the IMAP server
+#IMAP log yolu taşıma 
+Set-ImapSettings -LogFileLocation "$path\Logging\Imap4"
+
+#Exchange Performans log yolu taşıma
+logman -stop ExchangeDiagnosticsDailyPerformanceLog 
+logman -update ExchangeDiagnosticsDailyPerformanceLog -o "$path\Exchange\Microsoft\Exchange Server\V15\Logging\Diagnostics\DailyPerformanceLogs\ExchangeDiagnosticsDailyPerformanceLog"
+logman -start ExchangeDiagnosticsDailyPerformanceLog 
+logman -stop ExchangeDiagnosticsPerformanceLog 
+logman -update ExchangeDiagnosticsPerformanceLog -o "$path\Exchange\Microsoft\Exchange Server\V15\Logging\Diagnostics\PerformanceLogsToBeProcessed\ExchangeDiagnosticsPerformanceLog"
+logman -start ExchangeDiagnosticsPerformanceLog 
+Stop-Service MSExchangeDiagnostics
+$registryPath = "HKLM:\SOFTWARE\Microsoft\ExchangeServer\v15\Diagnostics"
+$propertyName = "LogFolderPath"
+$propertyValue = "D:\LOG\AppLogs\V15\Logging\Diagnostics"
+New-ItemProperty -Path $registryPath -Name $propertyName -Value $propertyValue -PropertyType String -Force
+Start-Service MSExchangeDiagnostics   
